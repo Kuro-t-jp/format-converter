@@ -1,0 +1,4 @@
+.DS_Store
+変換済み/
+history.json
+__pycache__/

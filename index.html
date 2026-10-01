@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>形式変換</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--fg:#1d2330;--sub:#6b7385;--line:#dfe3ea;--acc:#2f6fed;--ok:#1a9b5b;--err:#d23b3b}
+@media (prefers-color-scheme:dark){:root{--bg:#14171d;--card:#1d2129;--fg:#e8ebf2;--sub:#98a1b5;--line:#2c323d;--acc:#6b9bff;--ok:#43c487;--err:#ff6b6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Hiragino Sans",sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}.lead{color:var(--sub);margin:0 0 18px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.grp{font-size:12px;color:var(--sub);margin:10px 0 4px}
+.tab{padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;cursor:pointer;font:inherit;font-size:14px}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:10px}
+.preset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.preset span{font-size:12px;color:var(--sub)}
+.opts{display:flex;flex-wrap:wrap;gap:12px 20px;margin-bottom:12px}
+.opts label{display:flex;flex-direction:column;font-size:12px;color:var(--sub);gap:4px}
+.opts label.chk{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
+details{margin-bottom:12px}summary{cursor:pointer;color:var(--sub);font-size:13px;margin-bottom:10px}
+select,input[type=number],input[type=text]{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:130px}
+select:disabled,input:disabled{opacity:.4}
+.out{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:14px}
+.out small{color:var(--sub)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px 16px;text-align:center;color:var(--sub);cursor:pointer;transition:.15s}
+.drop.over{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--fg)}
+.drop b{color:var(--fg)}
+.pick{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px}
+.row{display:grid;grid-template-columns:56px 1fr auto;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.th{grid-row:1/4;width:56px;height:56px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--sub);overflow:hidden;cursor:pointer}
+.th img{width:100%;height:100%;object-fit:cover}
+.nm{font-weight:600;word-break:break-all;font-size:14px}.inf{font-size:12px;color:var(--sub)}.st{font-size:13px;color:var(--sub)}
+.bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+.row.done .bar i{background:var(--ok)}.row.error .st{color:var(--err)}
+.acts{display:flex;gap:6px;grid-row:1/4;grid-column:3;flex-wrap:wrap;justify-content:flex-end}
+button.s{font:inherit;font-size:13px;padding:5px 11px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;cursor:pointer}
+button.s:hover{border-color:var(--acc)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px}
+button.p{font:inherit;font-weight:600;padding:10px 22px;border:0;border-radius:10px;background:var(--acc);color:#fff;cursor:pointer}
+button.p:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--sub)}
+.hist .h{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.hist .h:last-child{border:0}.hist .t{color:var(--sub);font-size:12px}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);padding:14px;max-width:90vw}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog video,dialog img{max-width:80vw;max-height:70vh;display:block}
+</style>
+</head>
+<body>
+<main>
+  <h1>形式変換</h1>
+  <p class="lead">動画・音声・画像・PDFの変換、結合、切り出しをまとめて行います。ファイルはこのMacの外には出ません。</p>
+
+  <div class="grp">変換</div><div class="tabs" id="tabs1"></div>
+  <div class="grp">結合</div><div class="tabs" id="tabs2"></div>
+  <div class="grp">切り出し</div><div class="tabs" id="tabs3"></div>
+
+  <div class="panel">
+    <div class="preset">
+      <span>プリセット</span>
+      <select id="preset"></select>
+      <button class="s" id="p-save">今の設定を保存</button>
+      <button class="s" id="p-del">削除</button>
+    </div>
+    <div class="opts" id="opts"></div>
+    <details id="adv"><summary>詳細設定</summary><div class="opts" id="advopts"></div></details>
+    <div class="out">
+      <label>保存先
+        <select id="outdir"><option value="default">「変換済み」フォルダ</option><option value="beside">元ファイルの隣（Finderで選んだ場合）</option></select>
+      </label>
+      <label style="flex-direction:row;gap:6px;align-items:center"><input type="checkbox" id="trash"> 成功したら元ファイルをゴミ箱へ <small>（Finderで選んだファイルのみ）</small></label>
+    </div>
+    <div class="drop" id="drop"><div><b>ここにファイルやフォルダをドロップ</b>（またはクリックして選択）</div><div id="accept" style="font-size:13px;margin-top:6px"></div></div>
+    <input type="file" id="file" multiple hidden>
+    <div class="pick">
+      <button class="s" id="pick-file">Finderでファイルを選ぶ…</button>
+      <button class="s" id="pick-folder">Finderでフォルダを選ぶ…</button>
+      <label><input type="checkbox" id="recursive" checked> サブフォルダも含める</label>
+    </div>
+    <div id="list"></div>
+    <div id="mergeRes"></div>
+    <div class="foot">
+      <span class="hint" id="hint"></span>
+      <span style="display:flex;gap:8px">
+        <button class="s" id="folder">保存先を開く</button>
+        <button class="s" id="clear">一覧をクリア</button>
+        <button class="p" id="go" disabled>変換する</button>
+      </span>
+    </div>
+  </div>
+
+  <details class="panel hist" id="histbox"><summary>変換履歴</summary><div id="hist"></div><button class="s" id="hclear">履歴を消去</button></details>
+</main>
+<dialog id="dlg"><div id="dlgbody"></div><div style="text-align:right;margin-top:8px"><button class="s" onclick="dlg.close()">閉じる</button></div></dialog>
+
+<script>
+const VIDEO_IN="mp4 mov mkv avi webm flv wmv m4v mpg mpeg ts 3gp mts m2ts ogv".split(" ");
+const AUDIO_IN="mp3 wav m4a aac flac ogg opus wma aiff aif caf amr".split(" ");
+const IMAGE_IN="jpg jpeg png webp gif bmp tif tiff heic heif avif ico".split(" ");
+const AUDIO_OUT=[["mp3","MP3"],["m4a","M4A (AAC)"],["wav","WAV"],["flac","FLAC"],["opus","Opus"],["aiff","AIFF"]];
+const FRAME_OUT=[["jpg","JPEG"],["png","PNG"],["webp","WebP"]];
+const VID_OUT=[["mp4","MP4 (H.264)"],["mov","MOV"],["mkv","MKV"],["webm","WebM (VP9)"],["avi","AVI"],["gif","GIF アニメ"]];
+const META=["title","artist","album","cover"];
+const MODES={
+ video:{g:1,label:"動画を変換",task:"convert",accept:VIDEO_IN,targets:VID_OUT,basic:["quality","height","bitrate"],adv:["size_mb","ss","to","speed","loudnorm","sub","submode"]},
+ audio:{g:1,label:"音声を変換",task:"convert",accept:AUDIO_IN,targets:AUDIO_OUT,basic:["bitrate"],adv:["size_mb","ss","to","speed","loudnorm","silence",...META]},
+ extract:{g:1,label:"動画から音声を作る",task:"convert",accept:VIDEO_IN,targets:AUDIO_OUT,basic:["bitrate"],adv:["size_mb","ss","to","speed","loudnorm","silence",...META]},
+ image:{g:1,label:"画像を変換",task:"convert",accept:IMAGE_IN,targets:[["jpg","JPEG"],["png","PNG"],["webp","WebP"],["gif","GIF"],["bmp","BMP"],["tiff","TIFF"],["ico","ICO"],["pdf","PDF"]],basic:["quality","resize_mode","resize_val"],adv:["strip_exif"]},
+ mergev:{g:2,label:"動画を結合",task:"merge",accept:VIDEO_IN,targets:VID_OUT.filter(t=>t[0]!=="gif"),basic:["quality","height","bitrate"],adv:["size_mb","loudnorm"],order:true},
+ mergea:{g:2,label:"音声を結合",task:"merge",accept:[...AUDIO_IN,...VIDEO_IN],targets:AUDIO_OUT,basic:["bitrate"],adv:["size_mb","loudnorm",...META.slice(0,3)],order:true},
+ imgpdf:{g:2,label:"画像を1つのPDFに",task:"merge",accept:IMAGE_IN,targets:[["pdf","PDF"]],basic:[],adv:[],order:true},
+ frames:{g:3,label:"動画から静止画",task:"frames",accept:VIDEO_IN,targets:FRAME_OUT,basic:["frames_mode","frames_val","height"],adv:["ss","to"]},
+ pdf:{g:3,label:"PDFを画像に",task:"pdf2img",accept:["pdf"],targets:FRAME_OUT,basic:["dpi","quality"],adv:[]},
+};
+const OPT={
+ quality:{l:"画質",t:"select",ch:[["high","高"],["mid","標準"],["low","軽量"]],d:"mid"},
+ height:{l:"解像度（高さ）",t:"select",ch:[["","元のまま"],["2160","2160"],["1080","1080"],["720","720"],["480","480"]]},
+ bitrate:{l:"音声ビットレート(kbps)",t:"select",ch:["128","192","256","320"].map(x=>[x,x]),d:"192"},
+ size_mb:{l:"目標サイズ(MB以内)",t:"number",ph:"指定なし"},
+ ss:{l:"開始位置",t:"text",ph:"例 1:23 / 83.5"},
+ to:{l:"終了位置",t:"text",ph:"例 2:30（空欄=最後まで）"},
+ speed:{l:"再生速度",t:"select",ch:["0.5","0.75","1","1.25","1.5","2"].map(x=>[x,x+"倍"]),d:"1"},
+ loudnorm:{l:"音量をそろえる",t:"check"},
+ silence:{l:"無音部分をカット",t:"check"},
+ sub:{l:"字幕ファイル(.srt)",t:"file",accept:".srt"},
+ submode:{l:"字幕の付け方",t:"select",ch:[["soft","埋め込み（切替可能）"],["burn","焼き込み（常に表示）"]],d:"soft"},
+ title:{l:"タイトル",t:"text"},artist:{l:"アーティスト",t:"text"},album:{l:"アルバム",t:"text"},
+ cover:{l:"カバー画像",t:"file",accept:"image/*"},
+ resize_mode:{l:"サイズ指定",t:"select",ch:[["width","幅(px)以下"],["height","高さ(px)以下"],["long","長辺(px)以下"],["percent","倍率(%)"]],d:"width"},
+ resize_val:{l:"値",t:"number",ph:"元のまま"},
+ strip_exif:{l:"位置情報などのEXIFを削除",t:"check"},
+ frames_mode:{l:"切り出し方",t:"select",ch:[["interval","一定間隔（秒ごと）"],["times","指定した時刻（秒、カンマ区切り）"]],d:"interval"},
+ frames_val:{l:"間隔 / 時刻",t:"text",d:"10"},
+ dpi:{l:"解像度(dpi)",t:"select",ch:["72","150","200","300"].map(x=>[x,x]),d:"150"},
+};
+const BUILTIN=[
+ {name:"★ YouTube用 1080p MP4",ui:{mode:"video",target:"mp4",quality:"high",height:"1080",bitrate:"192"}},
+ {name:"★ メール/LINE用に軽く (480p・10MB以内)",ui:{mode:"video",target:"mp4",height:"480",size_mb:"10",bitrate:"128"}},
+ {name:"★ Discord用 (720p・8MB以内)",ui:{mode:"video",target:"mp4",height:"720",size_mb:"8",bitrate:"128"}},
+ {name:"★ 講義動画 → MP3（音量そろえ・無音カット）",ui:{mode:"extract",target:"mp3",bitrate:"128",loudnorm:true,silence:true}},
+ {name:"★ 動画 → 高音質MP3 320k",ui:{mode:"extract",target:"mp3",bitrate:"320"}},
+ {name:"★ Web用画像（WebP・幅1600px・EXIF削除）",ui:{mode:"image",target:"webp",quality:"mid",resize_mode:"width",resize_val:"1600",strip_exif:true}},
+ {name:"★ SNS共有用JPEG（長辺2048px・EXIF削除）",ui:{mode:"image",target:"jpg",quality:"mid",resize_mode:"long",resize_val:"2048",strip_exif:true}},
+];
+let mode="video",items=[],busy=false,uid=0,fileOpts={};
+const $=s=>document.querySelector(s);
+const extOf=n=>(n.split(".").pop()||"").toLowerCase();
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtSize=b=>b>1e9?(b/1e9).toFixed(2)+" GB":b>1e6?(b/1e6).toFixed(1)+" MB":Math.max(1,Math.round(b/1e3))+" KB";
+const fmtDur=s=>{s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")};
+const api=(p,b)=>fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})}).then(r=>r.json());
+function infoText(it){const i=it.info||{};const p=[];
+  if(i.width)p.push(`${i.width}×${i.height}`);if(i.pages)p.push(i.pages+"ページ");
+  if(i.duration)p.push(fmtDur(i.duration));
+  if(i.vcodec||i.acodec)p.push([i.vcodec,i.acodec].filter(Boolean).join("/"));
+  if(i.size)p.push(fmtSize(i.size));return p.join(" · ");}
+
+/* ---- タブ・オプション ---- */
+function renderTabs(){
+  [1,2,3].forEach(g=>$("#tabs"+g).innerHTML=Object.entries(MODES).filter(([k,m])=>m.g===g)
+    .map(([k,m])=>`<button class="tab ${k===mode?"on":""}" data-m="${k}">${m.label}</button>`).join(""));
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{if(!busy)setMode(b.dataset.m)});
+}
+function optHTML(k){const o=OPT[k];const id="o-"+k;
+  if(o.t==="select")return `<label>${o.l}<select id="${id}" data-opt="${k}">${o.ch.map(c=>`<option value="${c[0]}" ${c[0]===o.d?"selected":""}>${c[1]}</option>`).join("")}</select></label>`;
+  if(o.t==="check")return `<label class="chk"><input type="checkbox" id="${id}" data-opt="${k}"> ${o.l}</label>`;
+  if(o.t==="file")return `<label>${o.l}<span><button class="s" type="button" data-file="${k}">選択…</button> <span id="fn-${k}" class="inf">${esc(fileOpts[k]?.name||"未選択")}</span></span></label>`;
+  return `<label>${o.l}<input type="${o.t}" id="${id}" data-opt="${k}" placeholder="${o.ph||""}" value="${o.d||""}"></label>`;
+}
+function renderOpts(){
+  const m=MODES[mode];
+  $("#opts").innerHTML=`<label>変換後の形式<select id="o-target">${m.targets.map(t=>`<option value="${t[0]}">${t[1]}</option>`).join("")}</select></label>`+m.basic.map(optHTML).join("");
+  $("#advopts").innerHTML=m.adv.map(optHTML).join("");
+  $("#adv").style.display=m.adv.length?"":"none";
+  document.querySelectorAll("[data-file]").forEach(b=>b.onclick=()=>pickOptFile(b.dataset.file));
+  $("#accept").textContent="対応: "+m.accept.join(" / ");
+  $("#go").textContent=m.task==="merge"?"結合する":m.task==="convert"?"変換する":"書き出す";
+  $("#hint").textContent=m.order?"上から順に結合します。↑↓で順番を変えられます。":"";
+  $("#o-target").onchange=updOpts;updOpts();
+}
+function updOpts(){
+  const t=$("#o-target").value,set=(k,d)=>{const e=$("#o-"+k);if(e)e.disabled=d};
+  const lossless=["wav","flac","aiff"].includes(t);
+  if(mode==="video"||mode==="mergev"){set("bitrate",t==="gif");set("quality",t==="gif");set("size_mb",t==="gif");set("loudnorm",t==="gif");set("speed",false);set("submode",t==="gif");}
+  if(["audio","extract","mergea"].includes(mode)){set("bitrate",lossless);set("size_mb",lossless);}
+  if(mode==="image")set("quality",!["jpg","webp"].includes(t));
+  if(mode==="pdf")set("quality",t==="png");
+}
+function setMode(m,keep){mode=m;if(!keep){clearItems();}renderTabs();renderOpts();renderList();}
+function collect(){const o={};document.querySelectorAll("[data-opt]").forEach(e=>{if(e.disabled)return;
+  const v=e.type==="checkbox"?(e.checked?"1":""):e.value;if(v!=="")o[e.dataset.opt]=v;});
+  for(const k in fileOpts)if($("#fn-"+k))o[k]=fileOpts[k].id;return o;}
+function snapshot(){const s={mode,target:$("#o-target").value,outdir:$("#outdir").value};
+  document.querySelectorAll("[data-opt]").forEach(e=>s[e.dataset.opt]=e.type==="checkbox"?e.checked:e.value);return s;}
+function applyUI(s){setMode(s.mode,s.mode===mode);$("#o-target").value=s.target;
+  if(s.outdir)$("#outdir").value=s.outdir;
+  document.querySelectorAll("[data-opt]").forEach(e=>{const k=e.dataset.opt;if(k in s)e.type==="checkbox"?e.checked=!!s[k]:e.value=s[k];});updOpts();}
+async function pickOptFile(k){
+  const inp=document.createElement("input");inp.type="file";inp.accept=OPT[k].accept;
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;const r=await stage(f);fileOpts[k]={id:r.id,name:f.name};$("#fn-"+k).textContent=f.name;};
+  inp.click();
+}
+
+/* ---- プリセット ---- */
+const loadP=()=>{try{return JSON.parse(localStorage.getItem("fc_presets")||"[]")}catch{return[]}};
+function renderPresets(){
+  const u=loadP();
+  $("#preset").innerHTML=`<option value="">（選択してください）</option>`+BUILTIN.map((p,i)=>`<option value="b${i}">${esc(p.name)}</option>`).join("")+u.map((p,i)=>`<option value="u${i}">${esc(p.name)}</option>`).join("");
+}
+$("#preset").onchange=()=>{const v=$("#preset").value;if(!v||busy)return;const p=(v[0]==="b"?BUILTIN:loadP())[+v.slice(1)];if(p)applyUI(p.ui);};
+$("#p-save").onclick=()=>{const n=prompt("プリセット名");if(!n)return;const u=loadP();u.push({name:n,ui:snapshot()});localStorage.setItem("fc_presets",JSON.stringify(u));renderPresets();$("#preset").value="u"+(u.length-1);};
+$("#p-del").onclick=()=>{const v=$("#preset").value;if(v[0]!=="u")return alert("自分で保存したプリセットだけ削除できます");const u=loadP();u.splice(+v.slice(1),1);localStorage.setItem("fc_presets",JSON.stringify(u));renderPresets();};
+
+/* ---- ファイル読み込み ---- */
+function stage(file,it){
+  return new Promise((res,rej)=>{
+    const x=new XMLHttpRequest();
+    x.open("POST","/api/stage?name="+encodeURIComponent(file.name));
+    if(it)x.upload.onprogress=e=>{if(e.lengthComputable){it.msg=`読み込み中… ${Math.round(e.loaded/e.total*100)}%`;it.pct=e.loaded/e.total;paint(it);}};
+    x.onload=()=>{try{res(JSON.parse(x.responseText))}catch{rej("通信エラー")}};
+    x.onerror=()=>rej("サーバーに接続できません。アプリを起動し直してからページを再読み込みしてください");x.send(file);});
+}
+function addServerItems(list){
+  for(const s of list){
+    if(items.some(i=>i.id===s.id))continue;
+    const ok=MODES[mode].accept.includes(extOf(s.name));
+    items.push({uid:++uid,id:s.id,name:s.name,info:s.info,orig:s.orig,dir:s.dir,kind:s.kind,state:ok?"ready":"error",msg:ok?"待機中":"このモードでは扱えない形式です",pct:0});
+  }
+  renderList();
+}
+async function addFiles(files){
+  if(busy)return;const accept=MODES[mode].accept;
+  for(const f of files){
+    const it={uid:++uid,name:f.name,file:f,state:"staging",msg:"読み込み中…",pct:0,info:{size:f.size}};
+    if(!accept.includes(extOf(f.name))){it.state="error";it.msg="このモードでは扱えない形式です";items.push(it);continue;}
+    items.push(it);renderList();
+    try{const s=await stage(f,it);Object.assign(it,{id:s.id,info:s.info,kind:s.kind,state:"ready",msg:"待機中",pct:0});}
+    catch(e){it.state="error";it.msg="読み込み失敗: "+e;}
+    renderList();
+  }
+}
+async function pick(type){
+  if(busy)return;$("#hint").textContent="Finderのダイアログで選択してください…";
+  const r=await api("/api/pick",{type,accept:MODES[mode].accept,recursive:$("#recursive").checked});
+  $("#hint").textContent=r.cancelled?"":`${r.items.length} 個のファイルを読み込みました`;
+  addServerItems(r.items);
+}
+$("#pick-file").onclick=()=>pick("file");$("#pick-folder").onclick=()=>pick("folder");
+function clearItems(){if(items.length)api("/api/unstage",{ids:items.map(i=>i.id).filter(Boolean)});items=[];$("#mergeRes").innerHTML="";}
+
+/* ドロップ（フォルダも再帰的に展開） */
+async function entryFiles(entry,out){
+  if(entry.isFile)await new Promise(r=>entry.file(f=>{out.push(f);r()},r));
+  else if(entry.isDirectory){const rd=entry.createReader();let b;do{b=await new Promise(r=>rd.readEntries(r,()=>r([])));for(const e of b)await entryFiles(e,out);}while(b.length);}
+}
+const drop=$("#drop"),fi=$("#file");
+drop.onclick=()=>fi.click();
+fi.onchange=()=>{addFiles([...fi.files]);fi.value="";};
+["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",async ev=>{
+  const ents=[...ev.dataTransfer.items].map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+  const files=[];
+  if(ents.length){for(const e of ents)await entryFiles(e,files);}else files.push(...ev.dataTransfer.files);
+  files.sort((a,b)=>a.name.localeCompare(b.name,"ja",{numeric:true}));
+  addFiles(files.filter(f=>!f.name.startsWith(".")));
+});
+window.addEventListener("dragover",e=>e.preventDefault());window.addEventListener("drop",e=>e.preventDefault());
+
+/* ---- 一覧表示 ---- */
+function rowHTML(it,i,total){
+  const m=MODES[mode];
+  const th=it.kind==="image"&&it.id&&!["heic","heif","avif","tif","tiff"].includes(extOf(it.name))?`<img src="/api/file/${it.id}" loading="lazy">`:(it.kind||extOf(it.name)).toUpperCase();
+  let a="";
+  if(it.state==="done")a+=`<a href="/api/download/${it.job}"><button class="s">保存</button></a><button class="s" onclick="reveal('${it.job}')">Finderで表示</button>`;
+  if(it.state==="running")a+=`<button class="s" onclick="cancel(${i})">中止</button>`;
+  if(it.id&&["video","audio","image"].includes(it.kind))a+=`<button class="s" onclick="preview(${i})">プレビュー</button>`;
+  if(m.order&&!busy)a+=`<button class="s" onclick="mv(${i},-1)" ${i===0?"disabled":""}>↑</button><button class="s" onclick="mv(${i},1)" ${i===total-1?"disabled":""}>↓</button>`;
+  if(!busy)a+=`<button class="s" onclick="rm(${i})">✕</button>`;
+  return `<div class="row ${it.state}" id="r${it.uid}"><div class="th" onclick="preview(${i})">${th}</div>
+    <div class="nm">${esc(it.name)}</div><div class="acts">${a}</div>
+    <div class="inf">${esc(infoText(it))}${it.orig?` · <span title="${esc(it.dir)}">元の場所を保持</span>`:""}</div>
+    <div><div class="st">${esc(it.msg)}</div><div class="bar"><i style="width:${Math.round(it.pct*100)}%"></i></div></div></div>`;
+}
+function renderList(){
+  $("#list").innerHTML=items.map((it,i)=>rowHTML(it,i,items.length)).join("");
+  const ready=items.filter(i=>i.state==="ready").length;
+  $("#go").disabled=busy||!ready||(MODES[mode].task==="merge"&&ready<2);
+}
+function paint(it){const r=$("#r"+it.uid);if(!r)return;r.className="row "+it.state;r.querySelector(".st").textContent=it.msg;r.querySelector(".bar i").style.width=Math.round(it.pct*100)+"%";}
+function rm(i){const it=items[i];if(it.id)api("/api/unstage",{ids:[it.id]});items.splice(i,1);renderList();}
+function mv(i,d){const j=i+d;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];renderList();}
+function reveal(job){api("/api/reveal/"+job);}
+function cancel(i){api("/api/cancel/"+items[i].job);}
+const dlg=$("#dlg");
+function preview(i){const it=items[i];if(!it||!it.id)return;const u="/api/file/"+it.id;
+  const t=it.kind==="video"?`<video src="${u}" controls autoplay></video>`:it.kind==="audio"?`<audio src="${u}" controls autoplay></audio>`:it.kind==="image"?`<img src="${u}">`:`<div>${esc(it.name)}<br>${esc(infoText(it))}</div>`;
+  $("#dlgbody").innerHTML=`<div class="nm" style="margin-bottom:8px">${esc(it.name)}</div>`+t;dlg.showModal();}
+dlg.addEventListener("close",()=>$("#dlgbody").innerHTML="");
+
+/* ---- 変換実行 ---- */
+async function track(it,payload){
+  it.state="running";it.msg="変換中…";it.pct=0;paint(it);renderList();
+  try{
+    const r=await api("/api/convert",payload);if(r.error)throw r.error;it.job=r.job;
+    while(true){
+      await new Promise(r=>setTimeout(r,500));
+      const j=await (await fetch("/api/job/"+it.job)).json();
+      if(j.status==="running"||j.status==="queued"){it.pct=j.progress;it.msg=`変換中… ${Math.round(j.progress*100)}%`;paint(it);}
+      else if(j.status==="done"){it.state="done";it.pct=1;it.msg=`完了 → ${j.out_name} (${fmtSize(j.size)})`;break;}
+      else{it.state="error";it.msg="失敗: "+j.error;break;}
+    }
+  }catch(e){it.state="error";it.msg="失敗: "+e;}
+}
+async function convertAll(){
+  const m=MODES[mode];busy=true;renderList();
+  const base={task:m.task,target:$("#o-target").value,opts:collect(),outdir:$("#outdir").value,trash:$("#trash").checked,ui:snapshot()};
+  const ready=items.filter(i=>i.state==="ready");
+  if(m.task==="merge"){
+    const res={uid:++uid,name:"結合結果",state:"ready",msg:"",pct:0,info:{}};
+    $("#mergeRes").innerHTML=rowHTML(res,0,1);
+    ready.forEach(i=>{i.msg="結合に使用";});
+    await track(res,{...base,ids:ready.map(i=>i.id)});
+    $("#mergeRes").innerHTML=rowHTML(res,0,1).replace(/<button class="s" onclick="preview[^]*?<\/button>/,"");
+  } else {
+    await Promise.all(ready.map(it=>track(it,{...base,id:it.id}).then(()=>paint(it))));
+  }
+  busy=false;renderList();loadHist();
+}
+$("#go").onclick=convertAll;
+$("#clear").onclick=()=>{if(!busy){clearItems();renderList();}};
+$("#folder").onclick=()=>api("/api/reveal/none");
+
+/* ---- 履歴 ---- */
+async function loadHist(){
+  const h=await (await fetch("/api/history")).json();
+  window._h=h;
+  $("#hist").innerHTML=h.length?h.map((e,i)=>`<div class="h"><div><div>${esc(e.out_name)}</div><div class="t">${esc(e.time)} · 元: ${esc(e.src)}</div></div>
+    <div style="display:flex;gap:6px"><button class="s" onclick="hReveal(${i})">Finderで表示</button><button class="s" onclick="hReuse(${i})">同じ設定を使う</button></div></div>`).join(""):`<div class="hint">まだ履歴がありません</div>`;
+}
+function hReveal(i){api("/api/history_reveal",{i});}
+function hReuse(i){const e=window._h[i];if(busy||!e.ui||!e.ui.mode)return;applyUI(e.ui);window.scrollTo({top:0,behavior:"smooth"});}
+$("#hclear").onclick=async()=>{await api("/api/history/clear");loadHist();};
+
+renderTabs();renderOpts();renderList();renderPresets();loadHist();
+</script>
+</body>
+</html>

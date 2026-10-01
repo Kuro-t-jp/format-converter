@@ -1,0 +1,5 @@
+#!/bin/bash
+# アプリフォルダ（このappがある場所）の server.py を起動。起動済みならブラウザを開くだけ。
+DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+exec /usr/bin/python3 "$DIR/server.py"
